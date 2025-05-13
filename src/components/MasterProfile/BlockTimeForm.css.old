@@ -5,7 +5,7 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   z-index: 1010;
   width: 90%;
-  padding: 20px;
+  padding: 20px; 
   max-width: 600px;
   max-height: 90vh; /* Ограничение максимальной высоты */
   overflow-y: auto; /* Добавление прокрутки при необходимости */
@@ -214,6 +214,7 @@
     text-align: center;
   }
 }
+}
 
 /* Стили для ручного ввода времени */
 .manual-time-input {
@@ -320,7 +321,7 @@
     align-items: flex-start;
     gap: 10px;
   }
-
+  
   .toggle-time-mode {
     margin-top: 5px;
     padding: 8px 15px;
@@ -349,10 +350,10 @@
   align-items: center;
   background-color: #fafafa;
   transition: background-color 0.2s, border-color 0.2s;
-  min-height: 70px;
+  min-height: 70px; 
   justify-content: center;
-  text-align: center;
-  padding: 6px 8px;
+  text-align: center; 
+  padding: 6px 8px; 
   min-height: 60px; /* было 70px */
   font-size: 0.85rem; /* уменьшили общий размер шрифта */
   justify-content: center;
@@ -411,16 +412,17 @@
     font-size: 0.8rem;
   }
 }
-
-.manual-time-input {
-  padding: 10px;
-}
-
-.phone-input-container {
-  height: 44px; /* Увеличиваем для лучшего нажатия на мобильных */
-}
-
-.phone-prefix {
-  min-width: 50px;
-  font-size: 0.85rem;
+  
+  .manual-time-input {
+    padding: 10px;
+  }
+  
+  .phone-input-container {
+    height: 44px; /* Увеличиваем для лучшего нажатия на мобильных */
+  }
+  
+  .phone-prefix {
+    min-width: 50px;
+    font-size: 0.85rem;
+  }
 }

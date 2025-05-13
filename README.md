@@ -49,45 +49,6 @@ To learn React, check out the [React documentation](https://reactjs.org/).
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
 
-## Тестирование кастомных бронирований
-
-Для тестирования удаления и редактирования кастомных бронирований используйте скрипт `src/test_custom_bookings.js`. Этот скрипт может быть импортирован в приложение и запущен в консоли браузера.
-
-### Использование в консоли браузера
-
-1. Откройте приложение в браузере
-2. Откройте консоль разработчика (F12 или Ctrl+Shift+I)
-3. Выполните следующие команды:
-
-```javascript
-// Создать тестовое кастомное бронирование
-window.testCustomBooking.create()
-
-// Обновить тестовое кастомное бронирование (замените ID на реальный)
-window.testCustomBooking.update(123, {
-  client_name: "Новое имя клиента",
-  service_name: "Новая услуга",
-  comment: "Новый комментарий"
-})
-
-// Удалить тестовое кастомное бронирование (замените ID на реальный)
-window.testCustomBooking.delete(123)
-
-// Запустить полный цикл тестирования 
-// (создание, обновление, удаление)
-window.testCustomBooking.runTests()
-```
-
-### Добавление скрипта в приложение
-
-Для использования тестового скрипта, добавьте следующую строку в `src/index.js`:
-
-```javascript
-import './test_custom_bookings.js'; // Импорт для тестирования кастомных бронирований
-```
-
-После этого тестовые функции будут доступны в объекте `window.testCustomBooking`.
-
 ### Analyzing the Bundle Size
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)

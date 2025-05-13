@@ -155,6 +155,20 @@
   color: #e74c3c;
 }
 
+/* Стили для оверлея */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
 /* Адаптивность для мобильных устройств */
 @media (max-width: 768px) {
   .master-header {
@@ -234,20 +248,11 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 20px;
   z-index: 1000;
-  box-sizing: border-box;
-  overflow-y: auto;
-  backdrop-filter: blur(3px);
-  animation: fadeIn 0.3s ease-out;
-}
-
-.overlay > div {
-  animation: slideUp 0.3s ease-out;
 }
 
 /* Состояния загрузки и ошибки */
@@ -715,90 +720,4 @@
   .stats-value {
     font-size: 1.5rem;
   }
-}
-
-/* Стили для мобильных устройств - модальные окна */
-@media (max-width: 768px) {
-  .overlay {
-    padding: 15px 10px;
-    align-items: flex-start;
-    padding-top: 40px;
-  }
-  
-  .overlay > div {
-    width: 100%;
-    max-width: 100%;
-    position: relative;
-  }
-  
-  .booking-options-form {
-    max-width: 100%;
-    max-height: 90vh;
-    overflow-y: auto;
-  }
-  
-  .booking-tabs {
-    flex-direction: column;
-  }
-  
-  .block-time-form,
-  .custom-booking-form {
-    max-width: 100%;
-    padding: 15px;
-    position: relative;
-  }
-}
-
-/* Общие стили для форм бронирования */
-.block-time-form,
-.custom-booking-form {
-  position: relative;
-  max-height: 85vh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch; /* Для плавного скролла на iOS */
-  background: white;
-  border-radius: 12px;
-}
-
-/* Скроллбар для форм */
-.block-time-form::-webkit-scrollbar,
-.custom-booking-form::-webkit-scrollbar,
-.booking-options-form::-webkit-scrollbar {
-  width: 8px;
-}
-
-.block-time-form::-webkit-scrollbar-track,
-.custom-booking-form::-webkit-scrollbar-track,
-.booking-options-form::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 10px;
-}
-
-.block-time-form::-webkit-scrollbar-thumb,
-.custom-booking-form::-webkit-scrollbar-thumb,
-.booking-options-form::-webkit-scrollbar-thumb {
-  background: #c0c0c0;
-  border-radius: 10px;
-}
-
-.block-time-form::-webkit-scrollbar-thumb:hover,
-.custom-booking-form::-webkit-scrollbar-thumb:hover,
-.booking-options-form::-webkit-scrollbar-thumb:hover {
-  background: #a0a0a0;
-}
-
-/* Предотвращение прокрутки основной страницы при открытом модальным окне */
-body.modal-open {
-  overflow: hidden;
-}
-
-/* Анимация для модальных окон */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
 }

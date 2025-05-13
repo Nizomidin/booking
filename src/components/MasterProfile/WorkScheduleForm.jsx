@@ -22,7 +22,7 @@ export default function WorkScheduleForm({ masterId, onSubmit, onCancel }) {
     sat: ["08:00", "21:00"],
     sun: ["09:00", "18:00"],
   });
-  
+
   // Добавляем состояние для выходных дней
   const [daysOff, setDaysOff] = useState({
     mon: false,
@@ -33,7 +33,7 @@ export default function WorkScheduleForm({ masterId, onSubmit, onCancel }) {
     sat: false,
     sun: false,
   });
-  
+
   const [loadingDays, setLoadingDays] = useState({});
   const [errorDays, setErrorDays] = useState({});
   const [globalError, setGlobalError] = useState("");
@@ -71,7 +71,7 @@ export default function WorkScheduleForm({ masterId, onSubmit, onCancel }) {
         if (!res.ok) throw new Error(res.statusText);
         const data = await res.json();
         const obj = {};
-        
+
         // Создаем новое состояние для выходных дней
         const newDaysOff = {
           mon: true,
@@ -82,13 +82,13 @@ export default function WorkScheduleForm({ masterId, onSubmit, onCancel }) {
           sat: true,
           sun: true,
         };
-        
+
         // Заполняем данными о рабочих днях и снимаем флаг выходного дня
         data.forEach(({ day, work_start, work_end }) => {
           obj[day] = [work_start, work_end];
           newDaysOff[day] = false; // Если день в расписании - он не выходной
         });
-        
+
         setSchedule(obj);
         setDaysOff(newDaysOff);
       } catch (err) {
@@ -132,10 +132,10 @@ export default function WorkScheduleForm({ masterId, onSubmit, onCancel }) {
     // Проверяем, существует ли schedule[day] и является ли он массивом
     if (!schedule[day] || !Array.isArray(schedule[day])) {
       // Если нет, создаем массив с двумя значениями по умолчанию
-      setSchedule(prev => ({ ...prev, [day]: ["08:00", "20:00"] }));
+      setSchedule((prev) => ({ ...prev, [day]: ["08:00", "20:00"] }));
       return;
     }
-    
+
     const newTimes = [...schedule[day]];
     const [hours, minutes] = newTimes[timeIndex].split(":");
 
@@ -148,7 +148,7 @@ export default function WorkScheduleForm({ masterId, onSubmit, onCancel }) {
     // Обновляем только локальное состояние, без вызова updateDay
     setSchedule((s) => ({ ...s, [day]: newTimes }));
   };
-  
+
   // Добавляем обработчик изменения чекбокса выходного дня
   const handleDayOffChange = (day, isChecked) => {
     setDaysOff((prev) => ({ ...prev, [day]: isChecked }));
@@ -156,21 +156,22 @@ export default function WorkScheduleForm({ masterId, onSubmit, onCancel }) {
 
   const saveAllSchedule = async () => {
     if (!masterId) return;
-    
+
     setLoading(true);
     setGlobalError("");
-    
+
     try {
       // Подготавливаем данные для отправки
       const scheduleData = {};
-      
+
       // Добавляем в запрос только рабочие дни (не выходные)
       Object.entries(schedule).forEach(([day, times]) => {
-        if (!daysOff[day]) { // Если день не отмечен как выходной
+        if (!daysOff[day]) {
+          // Если день не отмечен как выходной
           scheduleData[day] = times;
         }
       });
-      
+
       const res = await fetch(
         `https://api.kuchizu.online/masters/${masterId}/hours`,
         {
@@ -179,18 +180,18 @@ export default function WorkScheduleForm({ masterId, onSubmit, onCancel }) {
           body: JSON.stringify(scheduleData),
         }
       );
-      
+
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.detail?.[0]?.msg || res.statusText);
       }
-      
+
       showSuccess("График работы успешно сохранен");
-      
+
       if (onSubmit) {
         onSubmit(scheduleData);
       }
-      
+
       // Закрываем модальное окно после успешного сохранения
       if (onCancel) {
         onCancel();
@@ -309,8 +310,8 @@ export default function WorkScheduleForm({ masterId, onSubmit, onCancel }) {
               <div className="dayoff-checkbox-container">
                 <label className="dayoff-checkbox">
                   <input
-                    type="checkbox" 
-                    checked={daysOff[day]} 
+                    type="checkbox"
+                    checked={daysOff[day]}
                     onChange={(e) => handleDayOffChange(day, e.target.checked)}
                     aria-label={`Выходной день - ${label}`}
                   />
@@ -328,8 +329,8 @@ export default function WorkScheduleForm({ masterId, onSubmit, onCancel }) {
         </div>
 
         <div className="form-actions">
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="save-button"
             disabled={loading}
             onClick={handleSubmit}

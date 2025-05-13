@@ -1,7 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import './BookingDetails.css';
-import CustomTimePicker from './CustomTimePicker';
-import MobileBookingCard from './MobileBookingCard';
+import React, { useState, useEffect } from "react";
+import "./BookingDetails.css";
 
 function BookingDetails({ booking, masterId, onBack, onDelete, onUpdate }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -10,132 +8,109 @@ function BookingDetails({ booking, masterId, onBack, onDelete, onUpdate }) {
   const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [editData, setEditData] = useState({
-    clientName: '',
-    service_id: '',
-    date: '',
-    startTime: '',
-    notes: ''
+    clientName: "",
+    service_id: "",
+    date: "",
+    startTime: "",
+    endTime: "", // Добавляем поле для времени окончания
+    notes: "",
   });
-  const [timeError, setTimeError] = useState('');
+  const [timeError, setTimeError] = useState("");
   const [selectedSlot, setSelectedSlot] = useState(null);
-  // Состояния для отображения времени
-  const [startDisplay, setStartDisplay] = useState('—');
-  const [endDisplay, setEndDisplay] = useState(null);
+  const [manualTimeInput, setManualTimeInput] = useState(false); // Переключатель для ручного ввода времени
+
   // Инициализируем поля при выборе брони
   useEffect(() => {
     if (!booking) return;
 
-    let dt;
-    let dateStr;
-    let timeStr;
-    
-    // Обработка даты/времени для разных типов бронирований
-    if (booking.is_custom) {
-      // Для кастомных бронирований обрабатываем формат "YYYY-MM-DD HH:MM"
-      if (booking.start_time && typeof booking.start_time === 'string' && booking.start_time.includes(' ')) {
-        [dateStr, timeStr] = booking.start_time.split(' ');
-        const [year, month, day] = dateStr.split('-').map(Number);
-        const [hours, minutes] = timeStr.split(':').map(Number);
-        // Создаем объект Date (месяцы в Date начинаются с 0)
-        dt = new Date(year, month - 1, day, hours, minutes);
-      } else {
-        dt = new Date(Date.now());
-      }
+    const dt = new Date(booking.appointment_datetime || Date.now());
+    const yy = dt.getFullYear();
+    const mm = String(dt.getMonth() + 1).padStart(2, "0");
+    const dd = String(dt.getDate()).padStart(2, "0");
+    const hh = String(dt.getHours()).padStart(2, "0");
+    const mi = String(dt.getMinutes()).padStart(2, "0");
+
+    // Если есть end_time (для кастомных бронирований), парсим его
+    let endTimeValue = "";
+    if (booking.end_time) {
+      const endDt = new Date(booking.end_time);
+      const endHh = String(endDt.getHours()).padStart(2, "0");
+      const endMi = String(endDt.getMinutes()).padStart(2, "0");
+      endTimeValue = `${endHh}:${endMi}`;
+
+      // Автоматически включаем ручной ввод для кастомных бронирований
+      setManualTimeInput(true);
     } else {
-      // Для стандартных бронирований
-      dt = new Date(booking.appointment_datetime || Date.now());
+      setManualTimeInput(false);
     }
 
-    const yy = dt.getFullYear();
-    const mm = String(dt.getMonth() + 1).padStart(2, '0');
-    const dd = String(dt.getDate()).padStart(2, '0');
-    const hh = String(dt.getHours()).padStart(2, '0');
-    const mi = String(dt.getMinutes()).padStart(2, '0');
-
-    setEditData({
-      clientName: booking.client_name || '',
-      service_id: booking.service_id || '',
-      service_name: booking.service_name || '',
+    // Создаем начальное состояние
+    const initialData = {
+      clientName: booking.client_name || "",
+      service_id: booking.service_id || "",
+      service_name: booking.service_name || "",
       date: `${yy}-${mm}-${dd}`,
       startTime: `${hh}:${mi}`,
-      notes: booking.comment || ''
-    });
-    
-    setSelectedSlot(null);
-    setTimeError('');
-  }, [booking]);
+      endTime: endTimeValue,
+      notes: booking.comment || "",
+    };
 
-  // Форматирование времени для отображения
-  useEffect(() => {
-    if (!booking) return;
-    
-    // Форматируем время начала
-    if (booking.is_custom && booking.start_time) {
-      // Для кастомных бронирований извлекаем часть с временем
-      if (typeof booking.start_time === 'string' && booking.start_time.includes(' ')) {
-        setStartDisplay(booking.start_time.split(' ')[1]);
-      } else {
-        setStartDisplay(booking.start_time || 'Не указано');
-      }
-      
-      // Также проверяем и форматируем время окончания
-      if (booking.end_time) {
-        if (typeof booking.end_time === 'string' && booking.end_time.includes(' ')) {
-          setEndDisplay(booking.end_time.split(' ')[1]);
-        } else {
-          setEndDisplay(booking.end_time);
-        }
-      } else {
-        setEndDisplay(null);
-      }
-    } else {
-      // Для стандартных бронирований
-      try {
-        const dt = new Date(booking.appointment_datetime || booking.start_time || Date.now());
-        setStartDisplay(dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-        setEndDisplay(null); // Для стандартных бронирований нет времени окончания
-      } catch (err) {
-        console.error('Ошибка форматирования времени:', err);
-        setStartDisplay('Не указано');
-        setEndDisplay(null);
-      }
-    }
+    // Установим состояние
+    setEditData(initialData);
+    setSelectedSlot(null);
+    setTimeError("");
   }, [booking]);
 
   // Загрузка услуг по masterId
   useEffect(() => {
     if (!masterId) return;
     setServicesLoading(true);
-    
+
     // Загружаем все услуги
-    fetch('https://api.kuchizu.online/services', {
-      headers: { accept: 'application/json' }
+    fetch("https://api.kuchizu.online/services", {
+      headers: { accept: "application/json" },
     })
-      .then(res => {
-        if (!res.ok) throw new Error('Ошибка загрузки услуг');
+      .then((res) => {
+        if (!res.ok) throw new Error("Ошибка загрузки услуг");
         return res.json();
       })
-      .then(data => {
+      .then((data) => {
         // Фильтруем услуги для конкретного мастера
-        const filteredServices = data.filter(svc => svc.master_id === masterId);
+        const filteredServices = data.filter(
+          (svc) => svc.master_id === masterId
+        );
         setServices(filteredServices);
-        console.log(`Загружено ${filteredServices.length} услуг мастера ${masterId}`);
-        
-        // Если есть booking и service_id, но нет соответствующего service_name,
-        // найдем его среди загруженных услуг
-        if (booking && booking.service_id && !editData.service_name) {
-          const matchedService = filteredServices.find(s => s.id === booking.service_id);
-          if (matchedService) {
-            setEditData(prev => ({
-              ...prev,
-              service_name: matchedService.service_name
-            }));
+        console.log(
+          `Загружено ${filteredServices.length} услуг мастера ${masterId}`
+        );
+
+        // Если есть booking и у него есть service_name, но нет service_id или service_id не соответствует ни одной услуге,
+        // найдем подходящую услугу по service_name
+        if (booking && booking.service_name) {
+          // Проверяем, если у нас нет service_id или service_id не соответствует ни одной услуге
+          const needToFindServiceId = !booking.service_id || 
+            !filteredServices.some(s => s.id === booking.service_id);
+          
+          if (needToFindServiceId) {
+            // Ищем услугу с таким же именем
+            const matchedService = filteredServices.find(
+              s => s.service_name === booking.service_name
+            );
+            
+            if (matchedService) {
+              console.log(`Найдена подходящая услуга по имени: ${matchedService.service_name} (id: ${matchedService.id})`);
+              // Обновляем service_id
+              setEditData(prev => ({
+                ...prev,
+                service_id: matchedService.id
+              }));
+            }
           }
         }
       })
       .catch(console.error)
       .finally(() => setServicesLoading(false));
-  }, [masterId, booking, editData.service_name]);
+  }, [masterId, booking]);
 
   // Загрузка слотов после выбора услуги или даты
   useEffect(() => {
@@ -143,138 +118,190 @@ function BookingDetails({ booking, masterId, onBack, onDelete, onUpdate }) {
     setSlotsLoading(true);
     fetch(
       `https://api.kuchizu.online/masters/${masterId}/available?date=${editData.date}`,
-      { headers: { accept: 'application/json' } }
+      { headers: { accept: "application/json" } }
     )
-      .then(res => {
+      .then((res) => {
         if (!res.ok) {
           // Если код ответа 404 и сообщение об ошибке указывает на выходной день
           if (res.status === 404) {
-            return res.json().then(errorData => {
-              if (errorData.detail && errorData.detail.includes('выходной')) {
+            return res.json().then((errorData) => {
+              if (errorData.detail && errorData.detail.includes("выходной")) {
                 // Возвращаем пустой массив слотов
                 return [];
               }
-              throw new Error('Ошибка загрузки слотов');
+              throw new Error("Ошибка загрузки слотов");
             });
           }
-          throw new Error('Ошибка загрузки слотов');
+          throw new Error("Ошибка загрузки слотов");
         }
         return res.json();
       })
-      .then(data => {
+      .then((data) => {
         if (!Array.isArray(data)) {
           setAvailableTimeSlots([]);
           return;
         }
-        const svc = services.find(s => s.id === editData.service_id);
+        const svc = services.find((s) => s.id === editData.service_id);
         setAvailableTimeSlots(
-          svc
-            ? data.filter(slot => slot.service === svc.service_name)
-            : []
+          svc ? data.filter((slot) => slot.service === svc.service_name) : []
         );
       })
-      .catch(error => {
+      .catch((error) => {
         console.error(error);
         setAvailableTimeSlots([]);
       })
       .finally(() => setSlotsLoading(false));
   }, [editData.service_id, editData.date, masterId, services]);
 
+  // Выводим сообщение в консоль для отладки
+  useEffect(() => {
+    if (booking && services.length > 0) {
+      console.log("Текущее состояние:");
+      console.log("- booking.service_name:", booking.service_name);
+      console.log("- booking.service_id:", booking.service_id);
+      console.log("- editData.service_id:", editData.service_id);
+      
+      const selectedService = services.find(s => s.id === editData.service_id);
+      console.log("- Выбранная услуга:", selectedService ? selectedService.service_name : "не выбрана");
+    }
+  }, [booking, services, editData.service_id]);
+
   // Обработка изменений полей
-  const handleChange = e => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'service_id') {
-      const selectedService = services.find(s => s.id === value);
-      setEditData(prev => ({
+    if (name === "service_id") {
+      const selectedService = services.find((s) => s.id === value);
+      setEditData((prev) => ({
         ...prev,
         service_id: value,
-        service_name: selectedService ? selectedService.service_name : '',
-        startTime: ''
+        service_name: selectedService ? selectedService.service_name : "",
+        startTime: "",
+        endTime: "", // Сбрасываем и время окончания
       }));
       setSelectedSlot(null);
-      setTimeError('');
+      setTimeError("");
       return;
     }
-    setEditData(prev => ({ ...prev, [name]: value }));
-    if (name === 'startTime') setTimeError('');
+
+    // Обработка ручного ввода времени начала
+    if (name === "startTime" && manualTimeInput) {
+      // Если выбрана услуга, автоматически рассчитываем время окончания
+      const selectedService = services.find(
+        (s) => s.id === editData.service_id
+      );
+      if (selectedService && selectedService.duration) {
+        const [hours, minutes] = value.split(":").map(Number);
+        const durationMinutes = parseInt(selectedService.duration, 10);
+
+        let endHours = hours;
+        let endMinutes = minutes + durationMinutes;
+
+        if (endMinutes >= 60) {
+          endHours += Math.floor(endMinutes / 60);
+          endMinutes %= 60;
+        }
+
+        const endTime = `${String(endHours).padStart(2, "0")}:${String(
+          endMinutes
+        ).padStart(2, "0")}`;
+
+        setEditData((prev) => ({
+          ...prev,
+          startTime: value,
+          endTime: endTime,
+        }));
+        setTimeError("");
+        return;
+      }
+    }
+
+    setEditData((prev) => ({ ...prev, [name]: value }));
+    if (name === "startTime" || name === "endTime") setTimeError("");
   };
 
   // Выбор слота
-  const handleSlotSelect = slot => {
+  const handleSlotSelect = (slot) => {
     setSelectedSlot(slot);
-    setEditData(prev => ({
+    setEditData((prev) => ({
       ...prev,
-      startTime: slot.start_time
+      startTime: slot.start_time,
+      endTime: slot.end_time,
     }));
-    setTimeError('');
+    setTimeError("");
   };
+
+  // Переключение режима ввода времени
+  const toggleTimeInputMode = () => {
+    setManualTimeInput(!manualTimeInput);
+    if (!manualTimeInput) {
+      // При переключении в ручной режим сбрасываем выбранный слот
+      setSelectedSlot(null);
+    } else {
+      // При переключении обратно к слотам сбрасываем введенное время и ошибки
+      setEditData((prev) => ({
+        ...prev,
+        startTime: "",
+        endTime: "",
+      }));
+      setTimeError("");
+    }
+  };
+
   // Сохранение изменений
-  const handleSave = e => {
+  const handleSave = (e) => {
     e.preventDefault();
     if (!editData.service_id) {
-      setTimeError('Выберите услугу');
+      setTimeError("Выберите услугу");
       return;
     }
     if (!editData.startTime) {
-      setTimeError('Выберите время');
+      setTimeError("Выберите время");
+      return;
+    }
+    if (manualTimeInput && !editData.endTime) {
+      setTimeError("Укажите время окончания");
       return;
     }
 
-    // Подготовка данных в зависимости от типа бронирования
+    const appointment_datetime = `${editData.date} ${editData.startTime}`;
+
+    // Различная обработка для обычных и кастомных бронирований
     if (booking.is_custom) {
-      // Формируем данные для кастомного бронирования
-      const dateStr = editData.date;
-      const timeStr = editData.startTime;
-      
-      // Создаем время начала и окончания в формате "YYYY-MM-DD HH:MM"
-      const start_time = `${dateStr} ${timeStr}`;
-      
-      // Для времени окончания можем использовать выбранный слот или добавить 1 час по умолчанию
-      let end_time;
-      if (selectedSlot && selectedSlot.end_time) {
-        end_time = `${dateStr} ${selectedSlot.end_time}`;
-      } else {
-        // Добавляем 1 час к начальному времени
-        const [hours, minutes] = timeStr.split(':').map(Number);
-        const endHours = hours + 1 > 23 ? 23 : hours + 1;
-        const endTimeStr = `${String(endHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-        end_time = `${dateStr} ${endTimeStr}`;
-      }
-      
+      // Для кастомных бронирований
+      const end_time = `${editData.date} ${editData.endTime}`;
       onUpdate(booking.id, {
-        service_name: editData.service_name || services.find(s => s.id === editData.service_id)?.service_name,
-        start_time,
-        end_time,
-        client_name: editData.clientName,
-        comment: editData.notes
+        service_name: editData.service_name,
+        start_time: appointment_datetime,
+        end_time: end_time,
+        is_custom: true, // Флаг для определения типа брони на стороне родительского компонента
       });
     } else {
-      // Для стандартных бронирований
-      const appointment_datetime = `${editData.date} ${editData.startTime}`;
+      // Для обычных бронирований
       onUpdate(booking.id, {
         service_id: editData.service_id,
-        appointment_datetime,
-        comment: editData.notes
+        appointment_datetime: appointment_datetime,
+        comment: editData.notes,
       });
     }
-    
+
     // Закрываем диалоговое окно и возвращаемся к календарю
     setIsEditing(false);
     onBack(); // Вызываем функцию возврата к календарю
   };
-  if (!booking) return null;
 
+  if (!booking) return null;
   return (
     <div className="booking-details">
-      <button className="booking-close-button" onClick={onBack} aria-label="Закрыть">&times;</button>
       <div className="booking-details-header">
-        <button className="back-button" onClick={onBack}>← Назад</button>
+        <button className="back-button" onClick={onBack}>
+          ← Назад
+        </button>
         <h2>
           {booking.is_blocked
-            ? 'Забронированное время'
+            ? "Забронированное время"
             : booking.is_personal
-            ? 'Личная запись'
-            : 'Запись клиента'}
+            ? "Личная запись"
+            : "Запись клиента"}
         </h2>
       </div>
 
@@ -306,14 +333,13 @@ function BookingDetails({ booking, masterId, onBack, onDelete, onUpdate }) {
                 required
               >
                 <option value="">Выберите услугу</option>
-                {services.map(s => (
+                {services.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.service_name}
                   </option>
                 ))}
               </select>
             )}
-            
           </div>
 
           {/* Дата */}
@@ -329,70 +355,87 @@ function BookingDetails({ booking, masterId, onBack, onDelete, onUpdate }) {
 
           {/* Слоты */}
           <div className="form-group">
-            <label>Выберите доступное время</label>
-            {slotsLoading ? (
-              <p>Загрузка слотов...</p>
-            ) : !editData.service_id ? (
-              <p>Сначала выберите услугу</p>
-            ) : availableTimeSlots.length ? (
-              <div className="available-time-slots">
-                {availableTimeSlots.map((slot, idx) => (
-                  <div
-                    key={idx}
-                    className={
-                      'time-slot' +
-                      (editData.startTime === slot.start_time
-                        ? ' selected'
-                        : '')
-                    }
-                    onClick={() => handleSlotSelect(slot)}
-                  >
-                    <span className="slot-time">
-                      {slot.start_time} – {slot.end_time}
-                    </span>
-                  </div>
-                ))}
-              </div>
+            <label className="time-selection-header">
+              <span>Выберите доступное время</span>
+              <button
+                type="button"
+                className="toggle-time-mode"
+                onClick={toggleTimeInputMode}
+              >
+                {manualTimeInput ? "Выбрать из доступных" : "Указать вручную"}
+              </button>
+            </label>
+
+            {!manualTimeInput ? (
+              // Режим выбора из предустановленных слотов
+              slotsLoading ? (
+                <p>Загрузка слотов...</p>
+              ) : !editData.service_id ? (
+                <p>Сначала выберите услугу</p>
+              ) : availableTimeSlots.length ? (
+                <div className="available-time-slots">
+                  {availableTimeSlots.map((slot, idx) => (
+                    <div
+                      key={idx}
+                      className={
+                        "time-slot" +
+                        (editData.startTime === slot.start_time
+                          ? " selected"
+                          : "")
+                      }
+                      onClick={() => handleSlotSelect(slot)}
+                    >
+                      <span className="slot-time">
+                        {slot.start_time} – {slot.end_time}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p>Нет доступных интервалов</p>
+              )
             ) : (
-              <p>Нет доступных интервалов</p>
+              // Режим ручного ввода времени
+              <div className="manual-time-input">
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="startTime">Время начала</label>
+                    <input
+                      id="startTime"
+                      name="startTime"
+                      type="time"
+                      value={editData.startTime}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="endTime">Время окончания</label>
+                    <input
+                      id="endTime"
+                      name="endTime"
+                      type="time"
+                      value={editData.endTime}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="manual-time-hint">
+                  <small>Введите время начала и окончания записи вручную</small>
+                </div>
+              </div>
             )}
-            {/* Показываем текущее выбранное время */}
-            {editData.startTime && (
+            {/* Показываем текущее выбранное время если оно есть */}
+            {!manualTimeInput && editData.startTime && (
               <div className="current-time">
                 <p>Текущее выбранное время: {editData.startTime}</p>
               </div>
             )}
           </div>
 
-          {/* Примечания */}
-          <div className="form-group">
-            <label>Примечания</label>
-            <textarea
-              name="notes"
-              value={editData.notes}
-              onChange={handleChange}
-              rows="3"
-              placeholder="Дополнительная информация"
-            />
-          </div>
-
+          
           {timeError && <div className="error-message">{timeError}</div>}
-
-          {/* Дополнительные поля для кастомных бронирований */}
-          {booking.is_custom && (
-            <CustomTimePicker
-              startTime={editData.startTime}
-              endTime={editData.endTime || ''}
-              date={editData.date}
-              onChange={({ startTime, endTime }) => {
-                setEditData(prev => ({
-                  ...prev,
-                  startTime: startTime || prev.startTime,
-                  endTime: endTime || prev.endTime
-                }));
-              }}
-            />
-          )}
 
           <div className="form-actions">
             <button
@@ -408,71 +451,59 @@ function BookingDetails({ booking, masterId, onBack, onDelete, onUpdate }) {
           </div>
         </form>
       ) : (
-        <>
-          {/* Мобильная карточка (отображается только на мобильных устройствах) */}
-          <MobileBookingCard 
-            booking={booking} 
-            onEdit={() => setIsEditing(true)}
-            onDelete={onDelete}
-          />
-          
-          {/* Стандартное отображение (скрывается на мобильных экранах в CSS) */}
-          <div className="booking-info-container">
-            <div className="booking-info-card">
-              {!booking.is_blocked && !booking.is_personal && (
-                <div className="info-row">
-                  <span className="info-label">Клиент:</span>
-                  <span className="info-value">
-                    {booking.client_name || '—'}
-                  </span>
-                </div>
-              )}
+        <div className="booking-info-container">
+          <div className="booking-info-card">
+            {!booking.is_blocked && !booking.is_personal && (
               <div className="info-row">
-                <span className="info-label">Услуга:</span>
+                <span className="info-label">Клиент:</span>
+                <span className="info-value">{booking.client_name || "—"}</span>
+              </div>
+            )}
+            <div className="info-row">
+              <span className="info-label">Услуга:</span>
+              <span className="info-value">
+                {booking.service_name || "Личное время"}
+              </span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">Начало:</span>
+              <span className="info-value">
+                {new Date(booking.start_time).toLocaleString("ru-RU", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
+            {booking.end_time && (
+              <div className="info-row">
+                <span className="info-label">Окончание:</span>
                 <span className="info-value">
-                  {booking.service_name || 'Личное время'}
+                  {new Date(booking.end_time).toLocaleString("ru-RU", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </span>
               </div>
-              
-              {booking.is_custom ? (
-                <div className="booking-times-container">
-                  <div className="booking-time-row">
-                    <span className="booking-time-label">Начало:</span>
-                    <span className="booking-time-value">{startDisplay}</span>
-                  </div>
-                  {endDisplay && (
-                    <div className="booking-time-row">
-                      <span className="booking-time-label">Окончание:</span>
-                      <span className="booking-time-value">{endDisplay}</span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="info-row">
-                  <span className="info-label">Начало:</span>
-                  <span className="info-value">{startDisplay}</span>
-                </div>
-              )}
-              {booking.comment && (
-                <div className="info-row notes">
-                  <span className="info-label">Примечания:</span>
-                  <span className="info-value">{booking.comment}</span>
-                </div>
-              )}
-            </div>
-            <div className="booking-actions">
-              <button onClick={() => setIsEditing(true)} className="edit-button">
-                Изменить
-              </button>
-              <button
-                onClick={() => onDelete(booking.id)}
-                className="delete-button"
-              >
-                Удалить
-              </button>
-            </div>
+            )}
+            {booking.comment && (
+              <div className="info-row notes">
+                <span className="info-label">Примечания:</span>
+                <span className="info-value">{booking.comment}</span>
+              </div>
+            )}
           </div>
-        </>
+          <div className="booking-actions">
+            <button onClick={() => setIsEditing(true)} className="edit-button">
+              Изменить
+            </button>
+            <button
+              onClick={() => onDelete(booking.id)}
+              className="delete-button"
+            >
+              Удалить
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

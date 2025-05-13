@@ -577,10 +577,6 @@
   border-left: 4px solid #f39c12;
 }
 
-.booking-item.custom {
-  border-left: 4px solid #2ecc71; /* Зеленый цвет для кастомных бронирований */
-}
-
 .booking-time {
   min-width: 100px;
   color: #555;
@@ -776,11 +772,6 @@
 
 .booking-preview.blocked {
   background-color: rgba(220, 53, 69, 0.1);
-}
-
-.booking-preview.custom {
-  background-color: rgba(46, 204, 113, 0.2);
-  border-left: 3px solid #2ecc71;
 }
 
 .booking-time {
@@ -1180,11 +1171,6 @@
   border-left-color: #ed8936;
 }
 
-.booking-preview.custom {
-  background-color: rgba(46, 204, 113, 0.2);
-  border-left: 3px solid #2ecc71;
-}
-
 .more-bookings {
   font-size: 0.75rem;
   text-align: center;
@@ -1223,10 +1209,6 @@
 
 .booking-item.blocked {
   border-left-color: #ed8936;
-}
-
-.booking-item.custom {
-  border-left: 4px solid #2ecc71; /* Зеленый цвет для кастомных бронирований */
 }
 
 .booking-time {

@@ -1,143 +1,168 @@
-// Тестовый скрипт для проверки удаления и редактирования кастомных бронирований
+/**
+ * Тесты для проверки функциональности кастомных бронирований
+ */
 
-// 1. Тестовые данные для кастомного бронирования
-const testCustomBooking = {
-  master_id: 1, // Замените на ID вашего мастера
-  client_name: "Тестовый клиент",
-  service_name: "Тестовая услуга",
-  start_time: "2025-05-15 14:00",
-  end_time: "2025-05-15 15:00",
+// Мок данные для тестирования
+const mockCustomBooking = {
+  id: "123",
+  client_name: "Тестовый Клиент",
+  service_id: "456",
+  service_name: "Окрашивание",
+  appointment_datetime: "2023-05-15 14:30:00",
+  start_time: "2023-05-15 14:30:00",
+  end_time: "2023-05-15 16:00:00",
+  comment: "Тестовый комментарий",
   status: "booked",
-  comment: "Тестовое кастомное бронирование"
+  is_custom: true
 };
 
-// 2. Функция для создания тестового кастомного бронирования
-async function createTestCustomBooking() {
+// Функция для проверки загрузки кастомных бронирований
+async function testLoadCustomBookings() {
   try {
-    const response = await fetch('https://api.kuchizu.online/custom_appointments', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'accept': 'application/json'
-      },
-      body: JSON.stringify(testCustomBooking)
-    });
+    console.log("Тест: Загрузка кастомных бронирований");
+    const response = await fetch("https://api.kuchizu.online/custom_appointments");
     
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Ошибка создания кастомного бронирования: ${errorData.detail || response.statusText}`);
+      throw new Error(`Ошибка загрузки: ${response.status}`);
     }
     
     const data = await response.json();
-    console.log('✅ Тестовое кастомное бронирование создано:', data);
-    return data;
-  } catch (error) {
-    console.error('❌ Ошибка:', error);
-    return null;
-  }
-}
-
-// 3. Функция для удаления тестового кастомного бронирования
-async function deleteTestCustomBooking(bookingId) {
-  try {
-    const response = await fetch(`https://api.kuchizu.online/custom_appointments/${bookingId}`, {
-      method: 'DELETE',
-      headers: {
-        'accept': 'application/json'
-      }
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Ошибка удаления кастомного бронирования: ${errorData.detail || response.statusText}`);
-    }
-    
-    console.log(`✅ Тестовое кастомное бронирование ${bookingId} успешно удалено`);
+    console.log(`Загружено ${data.length} кастомных бронирований`);
     return true;
   } catch (error) {
-    console.error('❌ Ошибка:', error);
+    console.error("Тест не пройден:", error);
     return false;
   }
 }
 
-// 4. Функция для обновления тестового кастомного бронирования
-async function updateTestCustomBooking(bookingId, updateData) {
+// Функция для проверки создания кастомного бронирования
+async function testCreateCustomBooking() {
   try {
-    const response = await fetch(`https://api.kuchizu.online/custom_appointments/${bookingId}`, {
-      method: 'PATCH',
+    console.log("Тест: Создание кастомного бронирования");
+    
+    const testData = {
+      master_id: "789",
+      client_name: "Тестовый Клиент",
+      service_id: "456",
+      appointment_datetime: "2023-05-15 14:30:00",
+      start_time: "2023-05-15 14:30:00",
+      end_time: "2023-05-15 16:00:00",
+      comment: "Тестовое бронирование"
+    };
+    
+    const response = await fetch("https://api.kuchizu.online/custom_appointments", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'accept': 'application/json'
+        "Content-Type": "application/json",
+        accept: "application/json"
+      },
+      body: JSON.stringify(testData)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Ошибка создания: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log("Бронирование создано:", data);
+    return data.id;
+  } catch (error) {
+    console.error("Тест не пройден:", error);
+    return null;
+  }
+}
+
+// Функция для проверки обновления кастомного бронирования
+async function testUpdateCustomBooking(id) {
+  if (!id) return false;
+  
+  try {
+    console.log(`Тест: Обновление кастомного бронирования ${id}`);
+    
+    const updateData = {
+      comment: "Обновленный комментарий",
+      start_time: "2023-05-15 15:00:00",
+      end_time: "2023-05-15 16:30:00"
+    };
+    
+    const response = await fetch(`https://api.kuchizu.online/custom_appointments/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        accept: "application/json"
       },
       body: JSON.stringify(updateData)
     });
     
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Ошибка обновления кастомного бронирования: ${errorData.detail || response.statusText}`);
+      throw new Error(`Ошибка обновления: ${response.status}`);
     }
     
     const data = await response.json();
-    console.log('✅ Тестовое кастомное бронирование обновлено:', data);
-    return data;
+    console.log("Бронирование обновлено:", data);
+    return true;
   } catch (error) {
-    console.error('❌ Ошибка:', error);
-    return null;
+    console.error("Тест не пройден:", error);
+    return false;
   }
 }
 
-// 5. Запуск тестирования
-async function runTests() {
-  console.log('🧪 Начало тестирования кастомных бронирований...');
+// Функция для проверки удаления кастомного бронирования
+async function testDeleteCustomBooking(id) {
+  if (!id) return false;
   
-  // Создаем тестовое бронирование
-  const booking = await createTestCustomBooking();
-  if (!booking) {
-    console.error('❌ Тестирование остановлено из-за ошибки создания бронирования.');
-    return;
+  try {
+    console.log(`Тест: Удаление кастомного бронирования ${id}`);
+    
+    const response = await fetch(`https://api.kuchizu.online/custom_appointments/${id}`, {
+      method: "DELETE",
+      headers: {
+        accept: "application/json"
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Ошибка удаления: ${response.status}`);
+    }
+    
+    console.log("Бронирование удалено успешно");
+    return true;
+  } catch (error) {
+    console.error("Тест не пройден:", error);
+    return false;
   }
-  
-  // Пауза для визуального осмотра в интерфейсе
-  console.log('⏳ Пауза 5 секунд для проверки создания в интерфейсе...');
-  await new Promise(resolve => setTimeout(resolve, 5000));
-  
-  // Обновляем тестовое бронирование
-  const updateData = {
-    master_id: booking.master_id,
-    client_name: "Обновленный клиент",
-    service_name: "Обновленная услуга",
-    start_time: booking.start_time, // Оставляем то же время начала
-    end_time: booking.end_time,     // Оставляем то же время окончания
-    comment: "Обновленный комментарий"
-  };
-  
-  const updatedBooking = await updateTestCustomBooking(booking.id, updateData);
-  if (!updatedBooking) {
-    console.error('❌ Тестирование остановлено из-за ошибки обновления бронирования.');
-    return;
-  }
-  
-  // Пауза для визуального осмотра в интерфейсе
-  console.log('⏳ Пауза 5 секунд для проверки обновления в интерфейсе...');
-  await new Promise(resolve => setTimeout(resolve, 5000));
-  
-  // Удаляем тестовое бронирование
-  const deleted = await deleteTestCustomBooking(booking.id);
-  if (!deleted) {
-    console.error('❌ Тестирование остановлено из-за ошибки удаления бронирования.');
-    return;
-  }
-  
-  console.log('✅ Все тесты успешно пройдены!');
 }
 
-// Запускаем тестирование при загрузке файла
-runTests().catch(console.error);
+// Запуск всех тестов
+async function runAllTests() {
+  console.log("=== Начало тестирования кастомных бронирований ===");
+  
+  // Тест 1: Загрузка кастомных бронирований
+  const loadResult = await testLoadCustomBookings();
+  console.log(`Результат загрузки: ${loadResult ? "Успех" : "Неудача"}`);
+  
+  // Тест 2: Создание кастомного бронирования
+  const createdId = await testCreateCustomBooking();
+  console.log(`Результат создания: ${createdId ? "Успех" : "Неудача"}`);
+  
+  if (createdId) {
+    // Тест 3: Обновление кастомного бронирования
+    const updateResult = await testUpdateCustomBooking(createdId);
+    console.log(`Результат обновления: ${updateResult ? "Успех" : "Неудача"}`);
+    
+    // Тест 4: Удаление кастомного бронирования
+    const deleteResult = await testDeleteCustomBooking(createdId);
+    console.log(`Результат удаления: ${deleteResult ? "Успех" : "Неудача"}`);
+  }
+  
+  console.log("=== Окончание тестирования кастомных бронирований ===");
+}
 
-// Экспортируем функции для использования в консоли браузера
-window.testCustomBooking = {
-  create: createTestCustomBooking,
-  update: updateTestCustomBooking,
-  delete: deleteTestCustomBooking,
-  runTests: runTests
+// Экспорт функций для использования в других модулях
+export {
+  testLoadCustomBookings,
+  testCreateCustomBooking,
+  testUpdateCustomBooking,
+  testDeleteCustomBooking,
+  runAllTests
 };

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 import "./BlockTimeForm.css";
 
-function BlockTimeForm({ onSubmit, onCancel, selectedDate, masterId, embedded = false }) {
+function BlockTimeForm({ onSubmit, onCancel, selectedDate, masterId }) {
   const [formData, setFormData] = useState({
     clientName: "",
     service: "", // будет хранить id выбранной услуги
     date: formatDateForInput(selectedDate),
     startTime: "",
+    endTime: "", // Добавлено для ручного ввода времени окончания
+    phone: "", // Добавлено для номера телефона
     notes: "",
   });
   const [timeError, setTimeError] = useState("");
@@ -15,6 +17,7 @@ function BlockTimeForm({ onSubmit, onCancel, selectedDate, masterId, embedded = 
   const [servicesLoading, setServicesLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
+  const [manualTimeInput, setManualTimeInput] = useState(false); // Переключатель для ручного ввода времени
 
   function formatDateForInput(date) {
     const d = new Date(date);
@@ -90,7 +93,7 @@ function BlockTimeForm({ onSubmit, onCancel, selectedDate, masterId, embedded = 
     if (name === "date") {
       // Форматируем дату для API
       const formattedDate = formatDateForApi(value);
-      
+
       // Загружаем доступные слоты для новой даты
       setLoading(true);
       fetch(
@@ -108,13 +111,14 @@ function BlockTimeForm({ onSubmit, onCancel, selectedDate, masterId, embedded = 
         .then((data) => setAvailableTimeSlots(data))
         .catch(console.error)
         .finally(() => setLoading(false));
-      
+
       // Сбрасываем выбранный слот при смене даты
       setSelectedTimeSlot(null);
       setFormData((prev) => ({
         ...prev,
         date: value,
         startTime: "",
+        endTime: "", // Сбрасываем и время окончания
       }));
       return;
     }
@@ -127,22 +131,84 @@ function BlockTimeForm({ onSubmit, onCancel, selectedDate, masterId, embedded = 
         ...prev,
         service: value,
         startTime: "",
+        endTime: "", // Сбрасываем и время окончания
       }));
       return;
     }
 
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (name === "startTime") setTimeError("");
-  };
+    // Обработка ручного ввода времени начала
+    if (name === "startTime" && manualTimeInput) {
+      // Если выбрана услуга, автоматически рассчитываем время окончания
+      const selectedService = services.find((s) => s.id === formData.service);
+      if (selectedService && selectedService.duration) {
+        const [hours, minutes] = value.split(":").map(Number);
+        const durationMinutes = parseInt(selectedService.duration, 10);
 
+        let endHours = hours;
+        let endMinutes = minutes + durationMinutes;
+
+        if (endMinutes >= 60) {
+          endHours += Math.floor(endMinutes / 60);
+          endMinutes %= 60;
+        }
+
+        const endTime = `${String(endHours).padStart(2, "0")}:${String(
+          endMinutes
+        ).padStart(2, "0")}`;
+
+        setFormData((prev) => ({
+          ...prev,
+          startTime: value,
+          endTime: endTime,
+        }));
+        setTimeError("");
+        return;
+      }
+    }
+
+    // Обработка номера телефона
+    if (name === "phone") {
+      // Удаляем все нецифровые символы
+      let phoneValue = value.replace(/\D/g, "");
+
+      // Ограничиваем длину (9 цифр без учета кода страны +992)
+      if (phoneValue.length > 9) {
+        phoneValue = phoneValue.substring(0, 9);
+      }
+
+      setFormData((prev) => ({ ...prev, phone: phoneValue }));
+      return;
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === "startTime" || name === "endTime") setTimeError("");
+  };
   // 5) Выбор тайм-слота
   const handleTimeSlotSelect = (slot) => {
     setSelectedTimeSlot(slot);
     setFormData((prev) => ({
       ...prev,
       startTime: slot.start_time,
+      endTime: slot.end_time,
     }));
     setTimeError("");
+    setManualTimeInput(false); // При выборе слота отключаем ручной ввод
+  };
+
+  // Переключение режима ввода времени
+  const toggleTimeInputMode = () => {
+    setManualTimeInput(!manualTimeInput);
+    if (!manualTimeInput) {
+      // При переключении в ручной режим сбрасываем выбранный слот
+      setSelectedTimeSlot(null);
+    } else {
+      // При переключении обратно к слотам сбрасываем введенное время
+      setFormData((prev) => ({
+        ...prev,
+        startTime: "",
+        endTime: "",
+      }));
+    }
   };
 
   // 6) Отправка формы
@@ -153,47 +219,54 @@ function BlockTimeForm({ onSubmit, onCancel, selectedDate, masterId, embedded = 
       return;
     }
     if (!formData.startTime) {
-      setTimeError("Пожалуйста, выберите время");
+      setTimeError("Пожалуйста, выберите или укажите время начала");
       return;
     }
+    if (manualTimeInput && !formData.endTime) {
+      setTimeError("Пожалуйста, укажите время окончания");
+      return;
+    }
+    // валидация ручного ввода времени...
 
-    const appointmentDateTime = `${formData.date} ${formData.startTime}`; // "YYYY-MM-DD HH:mm"
+    // Находим объект услуги по ID
+    const svc = services.find((s) => s.id === formData.service);
+    const serviceName = svc ? svc.service_name : "";
 
+    const appointmentDateTime = `${formData.date} ${formData.startTime}`;
     const blockData = {
       title: formData.clientName
         ? `Запись: ${formData.clientName}`
         : "Запись клиента",
-      service_id: formData.service,
+      service_name: serviceName, // <-- вместо service_id
       appointment_datetime: appointmentDateTime,
+      start_time: appointmentDateTime,
+      end_time: `${formData.date} ${formData.endTime}`,
       comment: formData.notes,
       client_name: formData.clientName,
+      phone_number: formData.phone ? `+992${formData.phone}` : "",
     };
+
 
     onSubmit(blockData);
   };
 
-  // Основной контейнер с учетом встроенного режима  
-  const formContainerClass = `block-time-form-container ${embedded ? 'embedded' : ''}`;
-  const formClass = `block-time-form ${embedded ? 'embedded' : ''}`;
-
   return (
-    <div className={formContainerClass}>
-      <div className={formClass}>
-        {!embedded && (
-          <div className="form-header">
-            <h2>Стандартная запись</h2>
-            <button
-              type="button"
-              className="close-button"
-              onClick={onCancel}
-              aria-label="Закрыть"
-            >
-              &times;
-            </button>
-          </div>
-        )}
+    <div className="block-time-form-container">
+      <div className="block-time-form">
+        <div className="form-header">
+          <h2>Запись клиента</h2>
+          <button
+            type="button"
+            className="close-button"
+            onClick={onCancel}
+            aria-label="Закрыть"
+          >
+            &times;
+          </button>
+        </div>
 
         <form onSubmit={handleSubmit}>
+          {" "}
           {/* Имя клиента */}
           <div className="form-group">
             <label htmlFor="clientName">Имя клиента</label>
@@ -207,7 +280,26 @@ function BlockTimeForm({ onSubmit, onCancel, selectedDate, masterId, embedded = 
               placeholder="Введите имя клиента"
             />
           </div>
-
+          {/* Номер телефона */}
+          <div className="form-group">
+            <label htmlFor="phone">Номер телефона</label>
+            <div className="phone-input-container">
+              <div className="phone-prefix">+992</div>
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={handleChange}
+                placeholder="XXXXXXXXX"
+                maxLength="9"
+                aria-describedby="phone-hint"
+              />
+            </div>
+            <small id="phone-hint" className="form-hint">
+              Введите 9 цифр номера без кода страны
+            </small>
+          </div>
           {/* Селект услуги */}
           <div className="form-group">
             <label htmlFor="service">Услуга</label>
@@ -230,7 +322,6 @@ function BlockTimeForm({ onSubmit, onCancel, selectedDate, masterId, embedded = 
               </select>
             )}
           </div>
-
           {/* Дата */}
           <div className="form-group">
             <label htmlFor="date">Дата</label>
@@ -240,57 +331,97 @@ function BlockTimeForm({ onSubmit, onCancel, selectedDate, masterId, embedded = 
               type="date"
               value={formData.date}
               onChange={handleChange}
-              min={new Date().toISOString().split('T')[0]}
+              min={new Date().toISOString().split("T")[0]}
             />
           </div>
-
           {/* Выводим выбранную дату в более дружественном формате */}
           <div className="selected-date">
-            Выбрана дата: {new Date(formData.date).toLocaleDateString('ru-RU', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric'
+            Выбрана дата:{" "}
+            {new Date(formData.date).toLocaleDateString("ru-RU", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
             })}
-          </div>
-
+          </div>{" "}
           {/* Слоты времени */}
           <div className="form-group">
-            <label>Выберите доступное время</label>
+            <label className="time-selection-header">
+              <span>Выберите доступное время</span>
+              <button
+                type="button"
+                className="toggle-time-mode"
+                onClick={toggleTimeInputMode}
+              >
+                {manualTimeInput ? "Выбрать из доступных" : "Указать вручную"}
+              </button>
+            </label>
 
-            {loading ? (
-              <p>Загрузка интервалов...</p>
-            ) : !formData.service ? (
-              <p>Сначала выберите услугу</p>
-            ) : timeSlotsToDisplay.length > 0 ? (
-              <div className="available-time-slots">
-                {timeSlotsToDisplay.map((slot, idx) => (
-                  <div
-                    key={idx}
-                    className={
-                      "time-slot" +
-                      (selectedTimeSlot === slot ? " selected" : "")
-                    }
-                    onClick={() => handleTimeSlotSelect(slot)}
-                  >
-                    <span className="slot-time">
-                      {slot.start_time} – {slot.end_time}
-                    </span>
-                    <span className="slot-service">{slot.service}</span>
-                  </div>
-                ))}
-              </div>
+            {!manualTimeInput ? (
+              // Режим выбора из предустановленных слотов
+              loading ? (
+                <p>Загрузка интервалов...</p>
+              ) : !formData.service ? (
+                <p>Сначала выберите услугу</p>
+              ) : timeSlotsToDisplay.length > 0 ? (
+                <div className="available-time-slots">
+                  {timeSlotsToDisplay.map((slot, idx) => (
+                    <div
+                      key={idx}
+                      className={
+                        "time-slot" +
+                        (selectedTimeSlot === slot ? " selected" : "")
+                      }
+                      onClick={() => handleTimeSlotSelect(slot)}
+                    >
+                      <span className="slot-time">
+                        {slot.start_time} – {slot.end_time}
+                      </span>
+                      <span className="slot-service">{slot.service}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p>Нет доступных интервалов для этой услуги</p>
+              )
             ) : (
-              <p>Нет доступных интервалов для этой услуги</p>
+              // Режим ручного ввода времени
+              <div className="manual-time-input">
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="startTime">Время начала</label>
+                    <input
+                      id="startTime"
+                      name="startTime"
+                      type="time"
+                      value={formData.startTime}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="endTime">Время окончания</label>
+                    <input
+                      id="endTime"
+                      name="endTime"
+                      type="time"
+                      value={formData.endTime}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="manual-time-hint">
+                  <small>Введите время начала и окончания записи вручную</small>
+                </div>
+              </div>
             )}
           </div>
-
           {/* Ошибка */}
           {timeError && (
             <div className="error-message" style={{ color: "red" }}>
               {timeError}
             </div>
           )}
-
           {/* Примечания */}
           <div className="form-group">
             <label htmlFor="notes">Примечания</label>
@@ -303,16 +434,13 @@ function BlockTimeForm({ onSubmit, onCancel, selectedDate, masterId, embedded = 
               placeholder="Дополнительная информация"
             />
           </div>
-
           {/* Кнопки */}
           <div className="form-actions">
-            {!embedded && (
-              <button type="button" className="cancel-btn" onClick={onCancel}>
-                Отмена
-              </button>
-            )}
+            <button type="button" className="cancel-btn" onClick={onCancel}>
+              Отмена
+            </button>
             <button type="submit" className="submit-btn">
-              {embedded ? "Забронировать" : "Сохранить"}
+              Сохранить
             </button>
           </div>
         </form>
